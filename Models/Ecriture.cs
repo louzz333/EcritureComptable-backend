@@ -21,5 +21,6 @@ namespace EcrituresApi.Models
         public string? Section_Analytique { get; set; }
         public string? TYPE_PIECE { get; set; } = "";
         public string? Societe { get; set; } = "";
+        public decimal? EtatComptabilisation { get; set; }
     }
 }

@@ -35,24 +35,52 @@ namespace EcritureComptable.Controllers
             [FromQuery] string? refpiece,
             [FromQuery] string? devise,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize=10)  //lit directement d'apres url apres lecture de ?
+            [FromQuery] int pageSize = 10)  //lit directement d'apres url apres lecture de ?
         {
-            
-            var result = _service.GetAll(libelle,journal,datedebut,datefin, comptecomptable,refpiece,devise,page,pageSize);
+
+            var result = _service.GetAll(libelle, journal, datedebut, datefin, comptecomptable, refpiece, devise, page, pageSize);
             return Ok(result);
         }
+
 
         [HttpDelete]
         public IActionResult SupprimerEcritures([FromBody] SuppressionRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Motif))
+                return BadRequest("Le motif est obligatoire.");
+
             _service.SupprimerEcritures(request.Ids, request.Motif);
             return Ok();
         }
 
         [HttpGet("historique")]
-        public IActionResult GetHistorique()
+        public IActionResult GetHistorique(
+        [FromQuery] string? libelle,
+        [FromQuery] string? journal,
+        [FromQuery] DateTime? datedebut,
+        [FromQuery] DateTime? datefin,
+        [FromQuery] string? comptecomptable,
+        [FromQuery] string? refpiece,
+        [FromQuery] string? devise,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
         {
-            return Ok(_service.GetHistorique());
+            var result = _service.GetHistorique(libelle, journal, datedebut, datefin, comptecomptable, refpiece, devise, page, pageSize);
+            return Ok(result);
+        }
+
+        [HttpGet("ids")]
+        public IActionResult GetAllIds(
+    [FromQuery] string? libelle,
+    [FromQuery] string? journal,
+    [FromQuery] DateTime? datedebut,
+    [FromQuery] DateTime? datefin,
+    [FromQuery] string? comptecomptable,
+    [FromQuery] string? refpiece,
+    [FromQuery] string? devise)
+        {
+            var result = _service.GetAllIds(libelle, journal, datedebut, datefin, comptecomptable, refpiece, devise);
+            return Ok(result);
         }
     }
 }

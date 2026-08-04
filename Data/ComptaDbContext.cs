@@ -19,13 +19,10 @@ namespace EcrituresApi.Data
             modelBuilder.Entity<Ecriture>(entity =>
             {
                 entity.ToTable("mvt_Mouvements");
-
                 entity.HasKey(e => e.CleMvt);
-
-                entity.Property(e => e.CleMvt)
-                      .HasColumnName("clemvt");
-
-            }); //effectuer lecture avec cle primaire
+                entity.Property(e => e.CleMvt).HasColumnName("clemvt");
+                entity.Property(e => e.EtatComptabilisation).HasColumnName("etat_comptabilisation");
+            });
 
 
         }
