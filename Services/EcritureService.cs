@@ -131,6 +131,25 @@ namespace EcrituresApi.Services
             };
         }
 
+        public List<string> GetComptesComptables()
+        {
+            return _db.Ecritures
+                .Select(e => e.Compte_comptable)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+        }
+
+        public List<string> GetComptesComptablesHistorique()
+        {
+            return _db.AuditSuppressions
+                .Where(a => a.CompteEcriture != null)
+                .Select(a => a.CompteEcriture!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+        }
+
         public object GetKpis()
         {
             var totalDebit = _db.Ecritures.Where(e => e.Sens == "D").Sum(e => e.Montant);

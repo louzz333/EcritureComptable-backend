@@ -18,6 +18,18 @@ namespace EcritureComptable.Controllers
             _service = service;
         }
 
+        [HttpGet("comptes")]
+        public IActionResult GetComptesComptables()
+        {
+            return Ok(_service.GetComptesComptables());
+        }
+
+        [HttpGet("comptes-historique")]
+        public IActionResult GetComptesComptablesHistorique()
+        {
+            return Ok(_service.GetComptesComptablesHistorique());
+        }
+
         [HttpGet("kpis")]
         public IActionResult GetKpis()
         {
