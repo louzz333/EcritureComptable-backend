@@ -64,6 +64,16 @@ namespace EcrituresApi.Services
             };
         }
 
+
+        public List<string> GetJournaux()
+        {
+            return _db.Ecritures
+                .Where(e => e.Journal != null)
+                .Select(e => e.Journal!)
+                .Distinct()
+                .OrderBy(j => j)
+                .ToList();
+        }
         public List<decimal> GetAllIds(string? libelle = null, string? journal = null, DateTime? datedebut = null, DateTime? datefin = null, string? comptecomptable = null, string? refpiece = null, string? devise = null)
         {
             var query = _db.Ecritures.AsQueryable();

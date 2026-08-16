@@ -18,6 +18,12 @@ namespace EcritureComptable.Controllers
             _service = service;
         }
 
+        [HttpGet("journaux")]
+        public IActionResult GetJournaux()
+        {
+            return Ok(_service.GetJournaux());
+        }
+
         [HttpGet("comptes")]
         public IActionResult GetComptesComptables()
         {
