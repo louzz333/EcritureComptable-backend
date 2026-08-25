@@ -5,5 +5,4 @@
         public List<decimal> Ids { get; set; } = new();
         public string Motif { get; set; } = "";
     }
-
 }

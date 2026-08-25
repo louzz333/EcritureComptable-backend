@@ -1,17 +1,148 @@
 ﻿using EcritureComptable.Models;
 using EcrituresApi.Data;
 using EcrituresApi.Models;
-using Microsoft.IdentityModel.Tokens;
 
 namespace EcrituresApi.Services
 {
+    
     public class EcritureService
     {
-        private readonly ComptaDbContext _db;//le pont vers db
+        private readonly ComptaDbContext _db;
 
-        public EcritureService(ComptaDbContext db)//mon constructeur
+        public EcritureService(ComptaDbContext db)
         {
             _db = db;
+        }
+
+        public EcriturePagineeResult GetAll(
+            string? libelle = null,
+            string? journal = null,
+            DateTime? datedebut = null,
+            DateTime? datefin = null,
+            string? comptecomptable = null,
+            string? refpiece = null,
+            string? devise = null,
+            int page = 1,
+            int pageSize = 10)
+        {
+            var query = _db.Ecritures.AsQueryable();
+
+            if (!string.IsNullOrEmpty(libelle))
+                query = query.Where(e => e.Libelle_Ecriture.Contains(libelle));
+
+            if (!string.IsNullOrEmpty(journal))
+                query = query.Where(e => e.Journal == journal);
+
+            if (datedebut.HasValue)
+                query = query.Where(e => e.Date >= datedebut.Value);
+
+            if (datefin.HasValue)
+                query = query.Where(e => e.Date <= datefin.Value);
+
+            if (!string.IsNullOrEmpty(comptecomptable))
+                query = query.Where(e => e.Compte_comptable == comptecomptable);
+
+            if (!string.IsNullOrEmpty(refpiece))
+                query = query.Where(e => e.Reference_Piece.Contains(refpiece));
+
+            if (!string.IsNullOrEmpty(devise))
+                query = query.Where(e => e.DEVISE == devise);
+
+            int total = query.Count();
+
+            var items = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new EcriturePagineeResult
+            {
+                Items = items,
+                TotalCount = total
+            };
+        }
+
+        
+        public List<decimal> GetAllIds(
+            string? libelle = null,
+            string? journal = null,
+            DateTime? datedebut = null,
+            DateTime? datefin = null,
+            string? comptecomptable = null,
+            string? refpiece = null,
+            string? devise = null)
+        {
+            var query = _db.Ecritures.AsQueryable();
+
+            if (!string.IsNullOrEmpty(libelle))
+                query = query.Where(e => e.Libelle_Ecriture.Contains(libelle));
+
+            if (!string.IsNullOrEmpty(journal))
+                query = query.Where(e => e.Journal == journal);
+
+            if (datedebut.HasValue)
+                query = query.Where(e => e.Date >= datedebut.Value);
+
+            if (datefin.HasValue)
+                query = query.Where(e => e.Date <= datefin.Value);
+
+            if (!string.IsNullOrEmpty(comptecomptable))
+                query = query.Where(e => e.Compte_comptable == comptecomptable);
+
+            if (!string.IsNullOrEmpty(refpiece))
+                query = query.Where(e => e.Reference_Piece.Contains(refpiece));
+
+            if (!string.IsNullOrEmpty(devise))
+                query = query.Where(e => e.DEVISE == devise);
+
+            return query.Select(e => e.CleMvt).ToList();
+        }
+
+        public object GetKpis()
+        {
+            var totalDebit = _db.Ecritures.Where(e => e.Sens == "D").Sum(e => e.Montant);
+            var totalCredit = _db.Ecritures.Where(e => e.Sens == "C").Sum(e => e.Montant);
+
+            var maintenant = DateTime.Now;
+            var supprimeesCeMois = _db.AuditSuppressions
+                .Where(a => a.DateSuppression.Month == maintenant.Month && a.DateSuppression.Year == maintenant.Year)
+                .Count();
+            var enAttente = _db.Ecritures.Count(e => e.EtatComptabilisation == 0);
+
+            return new
+            {
+                TotalDebit = totalDebit,
+                TotalCredit = totalCredit,
+                EnAttente = enAttente,
+                SupprimeesCeMois = supprimeesCeMois
+            };
+        }
+
+        
+        public void SupprimerEcritures(List<decimal> ids, string? motif)
+        {
+            var aSupprimer = _db.Ecritures.Where(e => ids.Contains(e.CleMvt)).ToList();
+
+            foreach (var e in aSupprimer)
+            {
+                _db.AuditSuppressions.Add(new AuditSuppression
+                {
+                    NumeroEcriture = e.N_Ecriture,
+                    DateEcriture = e.Date,
+                    JournalEcriture = e.Journal,
+                    CompteEcriture = e.Compte_comptable,
+                    MontantEcriture = e.Montant,
+                    SensEcriture = e.Sens,
+                    ReferenceEcriture = e.Reference_Piece,
+                    DeviseEcriture = e.DEVISE,
+                    Libelle = e.Libelle_Ecriture,
+                    DateSuppression = DateTime.Now,
+                    Motif = motif
+                });
+            }
+
+            _db.Ecritures.RemoveRange(aSupprimer);
+            _db.SaveChanges();
         }
 
         public HistoriquePagineeResult GetHistorique(
@@ -64,83 +195,6 @@ namespace EcrituresApi.Services
             };
         }
 
-
-        public List<string> GetJournaux()
-        {
-            return _db.Ecritures
-                .Where(e => e.Journal != null)
-                .Select(e => e.Journal!)
-                .Distinct()
-                .OrderBy(j => j)
-                .ToList();
-        }
-        public List<decimal> GetAllIds(string? libelle = null, string? journal = null, DateTime? datedebut = null, DateTime? datefin = null, string? comptecomptable = null, string? refpiece = null, string? devise = null)
-        {
-            var query = _db.Ecritures.AsQueryable();
-
-            if (!string.IsNullOrEmpty(libelle))
-                query = query.Where(e => e.Libelle_Ecriture.Contains(libelle));
-
-            if (!string.IsNullOrEmpty(journal))
-                query = query.Where(e => e.Journal == journal);
-
-            if (datedebut.HasValue)
-                query = query.Where(e => e.Date >= datedebut.Value);
-
-            if (datefin.HasValue)
-                query = query.Where(e => e.Date <= datefin.Value);
-
-            if (!string.IsNullOrEmpty(comptecomptable))
-                query = query.Where(e => e.Compte_comptable == comptecomptable);
-
-            if (!string.IsNullOrEmpty(refpiece))
-                query = query.Where(e => e.Reference_Piece.Contains(refpiece));
-
-            if (!string.IsNullOrEmpty(devise))
-                query = query.Where(e => e.DEVISE == devise);
-
-            return query.Select(e => e.CleMvt).ToList();
-        }
-
-        public EcriturePagineeResult GetAll(string? libelle = null, string? journal = null, DateTime? datedebut = null, DateTime? datefin = null, string? comptecomptable = null, string? refpiece = null, string? devise = null, int page = 1, int pageSize = 10)
-        {
-            var query = _db.Ecritures.AsQueryable();
-
-            if (!string.IsNullOrEmpty(libelle))
-                query = query.Where(e => e.Libelle_Ecriture.Contains(libelle));
-
-            if (!string.IsNullOrEmpty(journal))
-                query = query.Where(e => e.Journal == journal);
-
-            if (datedebut.HasValue)
-                query = query.Where(e => e.Date >= datedebut.Value);
-
-            if (datefin.HasValue)
-                query = query.Where(e => e.Date <= datefin.Value);
-
-            if (!string.IsNullOrEmpty(comptecomptable))
-                query = query.Where(e => e.Compte_comptable == comptecomptable);
-
-            if (!string.IsNullOrEmpty(refpiece))
-                query = query.Where(e => e.Reference_Piece.Contains(refpiece));
-
-            if (!string.IsNullOrEmpty(devise))
-                query = query.Where(e => e.DEVISE == devise);
-
-            int total = query.Count();
-
-            var items = query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            return new EcriturePagineeResult
-            {
-                Items = items,
-                TotalCount = total
-            };
-        }
-
         public List<string> GetComptesComptables()
         {
             return _db.Ecritures
@@ -160,51 +214,14 @@ namespace EcrituresApi.Services
                 .ToList();
         }
 
-        public object GetKpis()
+        public List<string> GetJournaux()
         {
-            var totalDebit = _db.Ecritures.Where(e => e.Sens == "D").Sum(e => e.Montant);
-            var totalCredit = _db.Ecritures.Where(e => e.Sens == "C").Sum(e => e.Montant);
-
-            var maintenant = DateTime.Now;
-            var supprimeesCeMois = _db.AuditSuppressions
-                .Where(a => a.DateSuppression.Month == maintenant.Month && a.DateSuppression.Year == maintenant.Year)
-                .Count();
-            var enAttente = _db.Ecritures.Count(e => e.EtatComptabilisation == 0);
-
-            return new
-            {
-                TotalDebit = totalDebit,
-                TotalCredit = totalCredit,
-                EnAttente = enAttente,
-                SupprimeesCeMois = supprimeesCeMois
-            };
-        }
-
-        public void SupprimerEcritures(List<decimal> ids, string? motif)
-        {
-            var aSupprimer = _db.Ecritures.Where(e => ids.Contains(e.CleMvt)).ToList();
-
-            foreach (var e in aSupprimer)
-            {
-                _db.AuditSuppressions.Add(new AuditSuppression
-                {
-                    NumeroEcriture = e.N_Ecriture,
-                    DateEcriture = e.Date,
-                    JournalEcriture = e.Journal,
-                    CompteEcriture = e.Compte_comptable,
-                    MontantEcriture = e.Montant,
-                    SensEcriture = e.Sens,
-                    ReferenceEcriture = e.Reference_Piece,
-                    DeviseEcriture = e.DEVISE,
-                    Libelle = e.Libelle_Ecriture,
-                    DateSuppression = DateTime.Now,
-                    Motif = motif
-                });
-            }
-
-            _db.Ecritures.RemoveRange(aSupprimer);   // suppression normale via EF Core, plus besoin de SQL brut
-
-            _db.SaveChanges();
+            return _db.Ecritures
+                .Where(e => e.Journal != null)
+                .Select(e => e.Journal!)
+                .Distinct()
+                .OrderBy(j => j)
+                .ToList();
         }
     }
 }

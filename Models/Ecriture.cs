@@ -1,7 +1,6 @@
-﻿using System;
-
-namespace EcrituresApi.Models
+﻿namespace EcrituresApi.Models
 {
+   
     public class Ecriture
     {
         public decimal CleMvt { get; set; }

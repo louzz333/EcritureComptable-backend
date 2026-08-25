@@ -1,5 +1,6 @@
 ﻿namespace EcritureComptable.Models
 {
+   
     public class AuditSuppression
     {
         public int Id { get; set; }
@@ -9,7 +10,6 @@
         public string? CompteEcriture { get; set; } = "";
         public decimal MontantEcriture { get; set; }
         public string? SensEcriture { get; set; } = "";
-
         public string? ReferenceEcriture { get; set; } = "";
         public string? DeviseEcriture { get; set; } = "";
         public string Libelle { get; set; } = "";
